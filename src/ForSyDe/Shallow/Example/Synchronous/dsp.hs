@@ -5,6 +5,13 @@ dspFilter = mapSY (\x -> if x > 1.5 then 1.5
                          else if x < -1.5 then -1.5 
                          else x)
 
+{-|
+    This function accepts a signal and a window size and generates a list of signals with the given size, spanning the values inside the original input signal.
+    In the initial state, the output signal is filled with zeros; the values come out individually. For example, if we take @[1..5]@ as the input signal and 3 as the window size, the output is @[[0,0,0],[0,0,1],[0,1,2],[1,2,3],[2,3,4],[3,4,5]]@.
+    First, its @initState@ fills the window with zero by replicating 0. Then, its @nextState@ appends the new value to the current window by @++@ operator, removes the old one by @drop 1@, and ensures its size remains correct by @take@.
+    Finally, its @output@ outputs the current window, ignoring the index by @_@.
+-}
+
 windowSY :: Int -> Signal Double -> Signal [Double]
 windowSY winSize = mooreSY nextState output initState where
     initState = (replicate winSize 0, 0) -- (win, index)
@@ -75,6 +82,7 @@ winSize = 4
 -- >>> dspGain gain $ dspFilter audio
 
 -- >>> dspSMA winSize $ dspFilter audio
+-- {0.0,0.35,-2.5000000000000022e-2,-2.0816681711721685e-17,0.375,-0.35,0.10000000000000002,-9.999999999999999e-2,-9.999999999999998e-2,0.275,-0.175,-7.5e-2,-7.500000000000001e-2,0.3,0.7250000000000001,0.42500000000000004,-5.000000000000002e-2,-0.275,5.0000000000000044e-2,4.999999999999999e-2,-0.22499999999999998,-0.25,-0.25,7.5e-2}
 
 -- >>> dspRMS winSize $ dspSMA winSize $ dspFilter audio
 
