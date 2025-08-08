@@ -1,7 +1,7 @@
 import ForSyDe.Shallow
 
-dspFilter :: Signal Double -> Signal Double
-dspFilter = mapSY (\x -> if x > 1.5 then 1.5 
+dspClipper :: Signal Double -> Signal Double
+dspClipper = mapSY (\x -> if x > 1.5 then 1.5 
                          else if x < -1.5 then -1.5 
                          else x)
 
@@ -42,8 +42,8 @@ dspTag = zipSY
 
 dspAudio :: Double -> Int -> Signal Double -> Signal (Double, Level)
 dspAudio gain n input = tagged where
-    filtered   = dspFilter input         
-    smoothed   = dspSMA n filtered       
+    clipped    = dspClipper input         
+    smoothed   = dspSMA n clipped       
     rms        = dspRMS n smoothed       
     amplified  = dspGain gain rms        
     monitored  = dspMonitor amplified    
@@ -56,17 +56,16 @@ adjGain currentGain level
     | level < -1.0 = min 5.0 (currentGain + 0.1) 
     | otherwise    = currentGain -- No change
 
-dspFB :: Double -> Int -> Signal Double -> Signal (Double, Level)
-dspFB initGain n input = tagged where
-  filtered  = dspFilter input 
-  smoothed  = dspSMA n filtered 
+dspAudioFB :: Double -> Int -> Signal Double -> Signal (Double, Level)
+dspAudioFB initGain n input = tagged where
+  clipped   = dspClipper input 
+  smoothed  = dspSMA n clipped 
   rms       = dspRMS n smoothed 
   adjusted  = mooreSY adjGain id initGain rms
   amplified = zipWithSY (*) adjusted rms
   monitored = dspMonitor amplified
   tagged    = dspTag amplified monitored  
 
--- This is a simple example of how to use the dspFB function with a signal.
 audio :: Signal Double
 audio = signal [1.4, -3.2, 0.1, 2.0, -1.5, 0.3, -0.7, 2.4, 0, -1.8, 
                 -0.3, 1.7, 1.9, 0.2, -3.1, -0.4, 0.6, 1.9, -2.1, 
@@ -77,15 +76,14 @@ gain = 2.5
 winSize :: Int
 winSize = 4
 
--- >>> dspFilter audio
+-- >>> dspClipper audio
 
--- >>> dspGain gain $ dspFilter audio
+-- >>> dspGain gain $ dspClipper audio
 
--- >>> dspSMA winSize $ dspFilter audio
--- {0.0,0.35,-2.5000000000000022e-2,-2.0816681711721685e-17,0.375,-0.35,0.10000000000000002,-9.999999999999999e-2,-9.999999999999998e-2,0.275,-0.175,-7.5e-2,-7.500000000000001e-2,0.3,0.7250000000000001,0.42500000000000004,-5.000000000000002e-2,-0.275,5.0000000000000044e-2,4.999999999999999e-2,-0.22499999999999998,-0.25,-0.25,7.5e-2}
+-- >>> dspSMA winSize $ dspClipper audio
 
--- >>> dspRMS winSize $ dspSMA winSize $ dspFilter audio
+-- >>> dspRMS winSize $ dspSMA winSize $ dspClipper audio
 
 -- >>> dspAudio gain winSize audio
 
--- >>> dspFB gain winSize audio
+-- >>> dspAudioFB gain winSize audio
